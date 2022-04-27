@@ -8,6 +8,13 @@ see the 1993 [Surprise and Coincidence](https://aclanthology.org/J93-1003.pdf) p
 For more information on how to use this test for recommendations, see
 this paper on [Efficient Incremental Cooccurrence Analysis](https://ssc.io/pdf/p3-schelter.pdf).
 
+# Installation
+
+This package has not yet been submitted to the Julia central package repository. As such,
+to install it, issue this command from the Julia REPL:
+```julia
+import Pkg; Pkg.add(url="https://github.com/tdunning/LLR")
+```
 # Usage for Recommendations
 If you have a matrix `A` that contains a history of interactions between users and items where
 rows represent users and columns represent items, you can reduce that matrix to one that records
