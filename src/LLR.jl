@@ -28,7 +28,7 @@ function signedG2(m::Matrix)::Float64
     end
     total = sum(m)
     expected = sum(m[:,1]) / total * sum(m[1,:])
-    return copysign(sqrt(g2test(m)), m[1,1] - expected)
+    return copysign(sqrt(max(0, g2test(m))), m[1,1] - expected)
 end
 
 md"""
@@ -50,7 +50,7 @@ in rows.
 """
 indicators(A::Matrix; kw...) = indicators(sparse(A), kw...)
 
-function indicators(A; itemcut=200)
+function indicators(A; itemcut=0, rowcut=200)
     # clip all non-zero elements of A to 1
     rows, items = size(A)
     for (i, j, v) in zip(findnz(A)...)
@@ -61,15 +61,33 @@ function indicators(A; itemcut=200)
         itemcut = rows
     end
 
-    # force each column to have a limited number of non-zeros
-    for i in 1:items
-        jx = findnz(A[:, i])[1]
-        excess = length(jx) - itemcut
-        if excess > 0
-            drops = shuffle!(jx)[1:excess]
-            A[drops, i] .= 0
+    # force each row to have a limited number of non-zeros
+    # this has minimal impact on the recommendations and
+    # makes the computation very fast 
+    if rowcut > 0
+        for i in 1:rows
+            jx = findnz(A[i, :])[1]
+            excess = length(jx) - rowcut
+            if excess > 0
+                drops = shuffle!(jx)[1:excess]
+                A[i, drops] .= 0
+            end
         end
     end
+
+    # likewise for each column 
+    # (this is disabled by default because it has little impact)
+    if itemcut > 0
+        for j in 1:items
+            ix = findnz(A[:, j])[1]
+            excess = length(ix) - itemcut
+            if excess > 0
+                drops = shuffle!(ix)[1:excess]
+                A[drops, j] .= 0
+            end
+        end
+    end
+
     dropzeros!(A)
     
     # and compute item (column) totals
