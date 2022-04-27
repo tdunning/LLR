@@ -95,7 +95,6 @@ function indicators(A; itemcut=0, rowcut=200)
         end
     end
     dropzeros!(A)
-    @info "cut complete"
     
     # and compute item (column) totals
     itemCounts = [sum(A[:,i]) for i in 1:items]
@@ -103,7 +102,6 @@ function indicators(A; itemcut=0, rowcut=200)
     
     # compute cooccurrence
     cooc = A' * A
-    @info "cooc done"
 
     # and scores
     nonzeros = findnz(cooc)
@@ -130,7 +128,6 @@ function indicators(A; itemcut=0, rowcut=200)
     k12 = k1x .- k11
     k21 = kx1 .- k11
     k22 = rows .- (k11 .+ k12 .+ k21)
-    @info "setup complete"
     sparse(ix, jx, signedG2.(k11, k12, k21, k22))
 end
 

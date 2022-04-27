@@ -35,7 +35,25 @@ end
 A = sparse(ix, jx, 1)
 ```
 The raw cooccurrence between items in this matrix is nasty because the first few rows have thousands of interactions
-and that means that the cooccurrence requires many millions of computations. By bounding this, we get a very scalable
-computation that is linear in execution time with the number of rows times `rowcut`. For this example, it takes about
-20 seconds to find the indicators for `A` with `rowcut=100` on my laptop
+and that means that the cooccurrence requires many millions of computations. By bounding this with the rowcut, we get a very scalable
+computation that is linear in execution time with the number of rows times `rowcut` plus setup time that is linear in the size of
+the original data. For this example, it takes less than
+10 seconds to find the indicators for `A` with `rowcut=100` on my laptop. 
+```julia
+julia> for i in [5, 10, 20, 50, 100, 200]
+         A = sparse(ix, jx, 1)
+         @show i
+         @time C = LLR.indicators(A; itemcut=0, rowcut=i)
+       end
+i = 5
+  2.473446 seconds (251.48 k allocations: 141.461 MiB)
+i = 10
+  3.840236 seconds (199.72 k allocations: 561.977 MiB, 16.50% gc time)
+i = 50
+  4.845385 seconds (171.31 k allocations: 1.316 GiB, 4.55% gc time)
+i = 100
+  7.392000 seconds (159.78 k allocations: 2.488 GiB, 4.53% gc time)
+i = 200
+ 13.758895 seconds (152.92 k allocations: 5.061 GiB, 5.56% gc time)
+ ```
 
