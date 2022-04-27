@@ -38,8 +38,15 @@ four separate entries that are arranged into a contingency table this way
 k11 k12
 k21 k22
 ```
+This version, however, is unwound to avoid allocating small matrices
 """
-signedG2(k11, k12, k21, k22) = signedG2([k11 k12; k21 k22])
+function signedG2(k11, k12, k21, k22)
+    full = denormEntropy(k11, k12, k21, k22)
+    row = denormEntropy(k11 + k12, k21 + k22)
+    col = denormEntropy(k11 + k21, k12 + k22)
+    expected = (k11 + k21) / (k11 + k12 + k21 + k22) * (k11 + k12)
+    copysign(sqrt(max(0, 2 * (full - row - col))), k11 - expected)
+end
 
 md"""
 Computes signed G statistics for the row-wise cooccurence of 
@@ -87,8 +94,8 @@ function indicators(A; itemcut=0, rowcut=200)
             end
         end
     end
-
     dropzeros!(A)
+    @info "cut complete"
     
     # and compute item (column) totals
     itemCounts = [sum(A[:,i]) for i in 1:items]
@@ -96,29 +103,35 @@ function indicators(A; itemcut=0, rowcut=200)
     
     # compute cooccurrence
     cooc = A' * A
+    @info "cooc done"
 
     # and scores
     nonzeros = findnz(cooc)
     ix = Vector{Int}()
     jx = Vector{Int}()
-    rx = Vector{Float64}()
+    k11 = Vector{Float64}()
+    k1x = Vector{Float64}()
+    kx1 = Vector{Float64}()
     for (i, j, v) in zip(nonzeros...)
         if i < j
-            k11 = cooc[i, j]
-            k12 = itemCounts[i] - k11
-            k21 = itemCounts[j] - k11
-            k22 = rows - k11 - k12 - k21
-            score = signedG2(k11, k12, k21, k22)
+            push!(k11, cooc[i, j])
+            push!(k1x, itemCounts[i])
+            push!(kx1, itemCounts[j])
             push!(ix, i)
             push!(jx, j)
-            push!(rx, score)
 
+            push!(k11, cooc[i, j])
+            push!(k1x, itemCounts[i])
+            push!(kx1, itemCounts[j])
             push!(ix, j)
             push!(jx, i)
-            push!(rx, score)
         end
     end
-    sparse(ix, jx, rx)
+    k12 = k1x .- k11
+    k21 = kx1 .- k11
+    k22 = rows .- (k11 .+ k12 .+ k21)
+    @info "setup complete"
+    sparse(ix, jx, signedG2.(k11, k12, k21, k22))
 end
 
 
@@ -126,6 +139,21 @@ function denormEntropy(v)
     N = sum(v)
     sum(-v .* log.(v/N + (v .== 0)))
 end
+
+md"This version doesn't allocate and is easier to inline"
+function denormEntropy(k1, k2)
+    N = k1 + k2
+    kLogP(k1, k1 / N) + kLogP(k2, k2 / N)
+end
+
+md"This version doesn't allocate and is easier to inline"
+function denormEntropy(k1, k2, k3, k4)
+    N = k1 + k2 + k3 + k4
+    kLogP(k1, k1 / N) + kLogP(k2, k2 / N) + 
+        kLogP(k3, k3 / N) + kLogP(k4, k4 / N)
+end
+
+kLogP(k, p) = k * log(p + (p == 0))
 
 """
 Compares the frequencies of corresponding items in two dictionaries using LLR

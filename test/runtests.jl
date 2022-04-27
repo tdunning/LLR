@@ -15,6 +15,8 @@ using LLR
 @test LLR.signedG2(1, 0, 0, 1) ≈ sqrt(4 * log(2))
 @test LLR.signedG2(0, 1, 1, 0) ≈ -sqrt(4 * log(2))
 
+@test LLR.signedG2.([1, 0, 10], [0, 1, 0], [0, 1, 0], [1, 0, 10]) ≈ [sqrt(4 * log(2)), -sqrt(4 * log(2)), sqrt(40 * log(2))]
+
 # comparison of dictionaries
 d = LLR.compare(Dict("a" => 1), Dict("b" => 1))
 @test d["a"] ≈ sqrt(4 * log(2))
@@ -42,6 +44,6 @@ A = [1 0 0 0 0; 0 2 0 1 0; 0 0 0 1 1; 0 1 0 1 1; 0 1 0 0 0]
 
 indicators = LLR.indicators(A)
 @test indicators == indicators'
-@test indicators[2,4] ≈ 0.372079 atol=1e-5
-@test indicators[2,5] ≈ -0.372079 atol=1e-5
-@test indicators[4,5] ≈ 1.70617 atol=1e-5
+@test indicators[2,4] ≈ LLR.signedG2(2,1,1,1) 
+@test indicators[2,5] ≈ LLR.signedG2(1,2,1,1) 
+@test indicators[4,5] ≈ LLR.signedG2(2,1,0,2) 
