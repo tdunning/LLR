@@ -2,6 +2,7 @@ module LLR
 
 using Markdown
 using SparseArrays
+using Random
 
 md"""
 Computes the G^2 test statistic for a contingency table in a 2x2 matrix
@@ -65,10 +66,11 @@ function indicators(A; itemcut=200)
         jx = findnz(A[:, i])[1]
         excess = length(jx) - itemcut
         if excess > 0
-            drops = rand(jx, excess)
+            drops = shuffle!(jx)[1:excess]
             A[drops, i] .= 0
         end
     end
+    dropzeros!(A)
     
     # and compute item (column) totals
     itemCounts = [sum(A[:,i]) for i in 1:items]
