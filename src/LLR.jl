@@ -41,11 +41,16 @@ k21 k22
 This version, however, is unwound to avoid allocating small matrices
 """
 function signedG2(k11, k12, k21, k22)
-    full = denormEntropy(k11, k12, k21, k22)
-    row = denormEntropy(k11 + k12, k21 + k22)
-    col = denormEntropy(k11 + k21, k12 + k22)
-    expected = (k11 + k21) / (k11 + k12 + k21 + k22) * (k11 + k12)
-    copysign(sqrt(max(0, 2 * (full - row - col))), k11 - expected)
+    try
+        full = denormEntropy(k11, k12, k21, k22)
+        row = denormEntropy(k11 + k12, k21 + k22)
+        col = denormEntropy(k11 + k21, k12 + k22)
+        expected = (k11 + k21) / (k11 + k12 + k21 + k22) * (k11 + k12)
+        copysign(sqrt(max(0, 2 * (full - row - col))), k11 - expected)
+    catch e
+        @info "Bad args: " e [k11 k12; k21 k22]
+        rethrow()
+    end
 end
 
 md"""
@@ -55,7 +60,7 @@ non-zero elements in a matrix.
 This matrix is arranged with items in columns and users/events/windows 
 in rows. 
 """
-indicators(A::Matrix; kw...) = indicators(sparse(A), kw...)
+indicators(A::Matrix; kw...) = indicators(sparse(A); kw...)
 
 function indicators(A; itemcut=0, rowcut=200)
     # clip all non-zero elements of A to 1
@@ -97,38 +102,35 @@ function indicators(A; itemcut=0, rowcut=200)
     dropzeros!(A)
     
     # and compute item (column) totals
-    itemCounts = [sum(A[:,i]) for i in 1:items]
+    itemCounts = sum(A, dims=1)
     total = sum(itemCounts)
     
     # compute cooccurrence
     cooc = A' * A
 
     # and scores
-    nonzeros = findnz(cooc)
     ix = Vector{Int}()
     jx = Vector{Int}()
     k11 = Vector{Float64}()
     k1x = Vector{Float64}()
     kx1 = Vector{Float64}()
-    for (i, j, v) in zip(nonzeros...)
+    for (i, j, v) in zip(findnz(cooc)...)
         if i < j
-            push!(k11, cooc[i, j])
+            # only record upper triangle to minimize evals of signedG2
+            push!(k11, v)
             push!(k1x, itemCounts[i])
             push!(kx1, itemCounts[j])
             push!(ix, i)
             push!(jx, j)
-
-            push!(k11, cooc[i, j])
-            push!(k1x, itemCounts[i])
-            push!(kx1, itemCounts[j])
-            push!(ix, j)
-            push!(jx, i)
         end
     end
+    @info "setup complete"
     k12 = k1x .- k11
     k21 = kx1 .- k11
     k22 = rows .- (k11 .+ k12 .+ k21)
-    sparse(ix, jx, signedG2.(k11, k12, k21, k22))
+    v = signedG2.(k11, k12, k21, k22)
+    # construct the symmetric indicator matrix
+    sparse([ix;jx], [jx;ix], [v;v], rows, rows)
 end
 
 
