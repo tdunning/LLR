@@ -130,7 +130,7 @@ function indicators(A; itemcut=0, rowcut=200)
     k22 = rows .- (k11 .+ k12 .+ k21)
     v = signedG2.(k11, k12, k21, k22)
     # construct the symmetric indicator matrix
-    sparse([ix;jx], [jx;ix], [v;v], rows, rows)
+    sparse([ix;jx], [jx;ix], [v;v], items, items)
 end
 
 

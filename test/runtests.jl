@@ -30,7 +30,7 @@ d = LLR.compare(Dict("a" => 1, "b" => 1), Dict("b" => 10, "c" => 100))
 A = [1 0 0 0 0; 0 2 0 1 0; 0 0 0 1 1; 0 1 0 1 1; 0 1 0 0 0]
 
 # that matrix looks like this:
-# 5×5 SparseMatrixCSC{Int64, Int64} with 9 stored entries:
+# SparseMatrixCSC{Int64, Int64} with 9 stored entries:
 #  1  .  .  .  .
 #  .  2  .  1  .
 #  .  .  .  1  1
@@ -47,3 +47,10 @@ indicators = LLR.indicators(A)
 @test indicators[2,4] ≈ LLR.signedG2(2,1,1,1) 
 @test indicators[2,5] ≈ LLR.signedG2(1,2,1,1) 
 @test indicators[4,5] ≈ LLR.signedG2(2,1,0,2) 
+
+# test wide input
+ind2 = LLR.indicators([A A])
+@test ind2 == ind2'
+@test ind2[2,4] ≈ LLR.signedG2(2,1,1,1) 
+@test ind2[2,5] ≈ LLR.signedG2(1,2,1,1) 
+@test ind2[4,5] ≈ LLR.signedG2(2,1,0,2) 
